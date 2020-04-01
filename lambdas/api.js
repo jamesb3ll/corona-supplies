@@ -47,6 +47,7 @@ module.exports.get = async event => {
 
     return {
       statusCode: 200,
+      headers: { 'Cache-Control': 'max-age=900' },
       body: JSON.stringify({ stores })
     };
   } catch (err) {
