@@ -1,0 +1,18 @@
+{
+  "name": "corona-supplies",
+  "version": "0.1.0",
+  "description": "Full Stack AWS Serverless + React App for finding necessary supplies during Coronavirus pandemic",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jamesb3ll/corona-supplies.git"
+  },
+  "author": "James Bell",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jamesb3ll/corona-supplies/issues"
+  },
+  "homepage": "https://github.com/jamesb3ll/corona-supplies#readme"
+}
