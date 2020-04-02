@@ -16,6 +16,7 @@ provider:
 functions:
   scrape:
     handler: lambdas/scrape.handler
+    timeout: 180
     events:
       - http: GET /scrape
   api:
@@ -40,8 +41,8 @@ resources:
           - AttributeName: 'StoreNo#ProductID'
             KeyType: RANGE
         ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
     CloudFrontDistribution:
       Type: AWS::CloudFront::Distribution
       Properties:

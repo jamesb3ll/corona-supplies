@@ -17,11 +17,15 @@ module.exports.get = async event => {
     const stores = Items.reduce((acc, curr) => {
       const [storeId, productId] = curr['StoreNo#ProductID'].split('#');
       const existingStore = acc.find(({ store }) => store.id === storeId);
+      const product = {
+        productId,
+        name: curr.productName,
+        photoUrl: curr.MediumImageFile,
+        url: 'https://woolworths.com.au/shop/productdetails/' + productId,
+        isAvailableInStore: curr.isAvailableInStore
+      };
       if (existingStore) {
-        existingStore.products.push({
-          productId,
-          isAvailableInStore: curr.isAvailableInStore
-        });
+        existingStore.products.push(product);
         existingStore.isAvailableInStore =
           existingStore.isAvailableInStore || curr.isAvailableInStore;
       } else {
@@ -33,12 +37,7 @@ module.exports.get = async event => {
             lat: curr.lat,
             lng: curr.lng
           },
-          products: [
-            {
-              productId,
-              isAvailableInStore: curr.isAvailableInStore
-            }
-          ],
+          products: [product],
           isAvailableInStore: curr.isAvailableInStore
         });
       }

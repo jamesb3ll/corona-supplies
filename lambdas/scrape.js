@@ -3,12 +3,34 @@ const fetch = require('node-fetch');
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
-const PRODUCT_ID = 158767;
-const SYDNEY_COORDS = [
-  [-33.8736064, 151.217141]
-  // [-33.5697673, 150.855438],
-  // [-33.9370937, 150.976181]
+const PRODUCT_IDS = [
+  158767,
+  677309,
+  847655,
+  329923,
+  67114,
+  579597,
+  742707,
+  847649,
+  824151,
+  12407,
+  752114,
+  779551,
+  321780,
+  722,
+  67113,
+  938184
 ];
+const SYDNEY_COORDS = [
+  [-33.8736064, 151.217141],
+  [-33.5697673, 150.855438],
+  [-33.9370937, 150.976181]
+];
+
+const getProduct = async productId =>
+  await (
+    await fetch(`https://www.woolworths.com.au/apis/ui/product/${productId}`)
+  ).json();
 
 const getAvailability = async (productId, [lat, lng]) =>
   await (
@@ -28,38 +50,49 @@ const removeDuplicates = arr =>
 
 module.exports.handler = async event => {
   const lastUpdatedAt = Date.now();
-
-  const scrapePromises = SYDNEY_COORDS.map(coords =>
-    getAvailability(PRODUCT_ID, coords)
-  );
-
-  const allStores = await Promise.all(scrapePromises);
-  console.log('allStores', allStores.flat().length);
-  const stores = removeDuplicates(allStores.flat());
-  console.log('stores', stores.length);
-
   try {
-    stores.forEach(({ Store, InstoreIsAvailable }) => {
-      const params = {
-        TableName: 'coronasupplies',
-        Item: {
-          ProductType: 'ToiletPaper',
-          'StoreNo#ProductID': `${Store.StoreNo}#${PRODUCT_ID}`,
-          storeName: Store.Name,
-          chain: 'Woolworths',
-          lat: Store.Latitude,
-          lng: Store.Longitude,
-          isAvailableInStore: InstoreIsAvailable,
-          lastUpdatedAt
-        }
-      };
-      // Don't `await`, no point in yeilding the thread
-      // Promise microtasks will run before execution ends
-      dynamodb.put(params).promise();
+    const allProducts = PRODUCT_IDS.map(async productId => {
+      const { Name: productName, MediumImageFile } = await getProduct(
+        productId
+      );
+
+      const scrapePromises = SYDNEY_COORDS.map(coords =>
+        getAvailability(productId, coords)
+      );
+
+      const allStores = await Promise.all(scrapePromises);
+      console.log('allStores', allStores.flat().length);
+      const stores = removeDuplicates(allStores.flat());
+      console.log('stores', stores.length);
+
+      await Promise.all(
+        stores.map(({ Store, InstoreIsAvailable }) => {
+          const params = {
+            TableName: 'coronasupplies',
+            Item: {
+              ProductType: 'ToiletPaper',
+              'StoreNo#ProductID': `${Store.StoreNo}#${productId}`,
+              storeName: Store.Name,
+              chain: 'Woolworths',
+              lat: Store.Latitude,
+              lng: Store.Longitude,
+              isAvailableInStore: InstoreIsAvailable,
+              productName,
+              MediumImageFile,
+              lastUpdatedAt
+            }
+          };
+          // Don't `await`, no point in yeilding the thread
+          // Promise microtasks will run before execution ends
+          return dynamodb.put(params).promise();
+        })
+      );
     });
 
+    const products = await Promise.all(allProducts);
+
     console.log(
-      `Scraped ${stores.length} stores successfully at ${new Date(
+      `Scraped ${products.length} products successfully at ${new Date(
         lastUpdatedAt
       )}`
     );
@@ -67,9 +100,7 @@ module.exports.handler = async event => {
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: `Scraped ${stores.length} stores successfully at ${new Date(
-          lastUpdatedAt
-        )}`
+        message: `Scraped successfully at ${new Date(lastUpdatedAt)}`
       })
     };
   } catch (err) {
